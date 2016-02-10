@@ -86,3 +86,5 @@ def getIndicator(indicator_name):
         indicator = getIndicatorFromDb(indicator_name)
     return toValArray(indicator)
 
+def getTestData():
+    return [10,8,12,10,8,12,10,8,12,10,8,12,10,8,12,10]
