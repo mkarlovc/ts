@@ -194,13 +194,13 @@ def plot_pred(title, endog, sample, pred, predX):
     ax.legend(loc="best");
     plt.show()
 
-def plot_pred_4(title, endog, prev, ar, arma, predX):
+def plot_pred_4(title, endog, prev, ar, arma, predX, prev_rmse, ar_rmse, arma_rmse):
     fig, ax = plt.subplots()
     plt.title(title)
     ax.plot(predX, endog[len(endog)-len(predX):len(endog)], 'o', label="Data")
-    ax.plot(predX, prev[len(prev)-len(predX):len(prev)], 'b-', label="Prev")
-    ax.plot(predX, ar[len(ar)-len(predX):len(ar)], 'g-', label="AR")
-    ax.plot(predX, arma[len(arma)-len(predX):len(arma)], 'r-', label="ARMA")
+    ax.plot(predX, prev[len(prev)-len(predX):len(prev)], 'b-', label="Prev("+str(round(prev_rmse,2))+")")
+    ax.plot(predX, ar[len(ar)-len(predX):len(ar)], 'g-', label="AR("+str(round(ar_rmse,2))+")")
+    ax.plot(predX, arma[len(arma)-len(predX):len(arma)], 'r-', label="ARMA("+str(round(arma_rmse,2))+")")
     ax.legend(loc="best");
     plt.show()
 
