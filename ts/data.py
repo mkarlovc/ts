@@ -1,7 +1,13 @@
 import sys
 from tinydb import TinyDB, where
 from Quandl import Quandl
+import pandas as pd
 import datetime
+import urllib
+import urllib2
+import json
+import re, sys
+from eventregistry import *
 
 ### DATABASE
 
@@ -36,7 +42,7 @@ def listIndicators():
 def printIndicators():
     indicators = listIndicators()
     for i in indicators:
-        print i["name"], i["desc"]
+        print i["nae"], i["desc"]
 
 # get indicator from database
 def getIndicatorFromDb(indicator_name):
@@ -76,6 +82,61 @@ def toValArray(data):
         arr.append(dp["value"])
     return arr
 
+# event registry correlate
+
+def erGetCountsConcept(input_concepts):
+    er = EventRegistry()
+    er.login("mario.karlovcec@gmail.com", "jerneja08")
+    q = GetCounts(input_concepts)
+    ret = er.execQuery(q)
+    return ret
+
+def erCorrelateConcept(input_concept):
+    er = EventRegistry()
+    er.login("mario.karlovcec@gmail.com", "jerneja08")
+    corr = GetTopCorrelations(er)
+    counts = GetCounts(er.getConceptUri(input_concept))
+    corr.loadInputDataWithCounts(counts)
+    conceptInfo = corr.getTopConceptCorrelations(conceptType = ["person", "loc", "org", "wiki"], exactCount = 5, approxCount = 5)
+    return conceptInfo
+
+def erCorrelateDf(indicatordf):
+    er = EventRegistry()
+    er.login("mario.karlovcec@gmail.com", "jerneja08")
+    corr = GetTopCorrelations(er)
+    arr = []
+    
+    x2 = pd.date_range(indicatordf.index[0],'2016-03-01',freq='1D')
+    df2 = indicatordf.reindex(x2)
+    df2 = df2.interpolate(method='linear')
+    df2 = df2.ix['2013-01-01':'2016-03-01']
+   
+    for i,j in zip(df2, df2.index):
+        arr.append((str(j.date()), i))
+    
+    corr.setCustomInputData(arr)
+    conceptInfo = corr.getTopConceptCorrelations(conceptType = ["person", "loc", "org", "wiki"], exactCount = 5, approxCount = 5)
+    correlated_concepts = []
+
+    for c in conceptInfo["news-concept"]["approximateCorrelations"][0:10]:
+        correlated_concepts.append(c["conceptInfo"]["uri"])
+
+    for c in conceptInfo["news-concept"]["exactCorrelations"][0:10]:
+        correlated_concepts.append(c["conceptInfo"]["uri"])
+
+    counts = erGetCountsConcept(correlated_concepts)
+    
+    corrs = []
+    for k in counts.keys():
+        vals = []
+        dates = []
+        for p in counts[k]:
+            vals.append(p['count'])
+            dates.append(pd.to_datetime(p['date']))
+        corrs.append(pd.Series(vals, index=dates))
+
+    return corrs,correlated_concepts
+
 ### MAIN
 
 # get indicator values as list of floats
@@ -85,6 +146,28 @@ def getIndicator(indicator_name):
     else:
         indicator = getIndicatorFromDb(indicator_name)
     return toValArray(indicator)
+
+# get indicator values as dataframe with datetime as index
+def getIndicatorDf(indicator_name):
+    if (isStored(indicator_name) == False):
+        indicator = getIndicatorFromQuandl(indicator_name)
+    else:
+        indicator = getIndicatorFromDb(indicator_name)
+    vals = []
+    dates = []
+    for p in indicator:
+        vals.append(p['value'])
+        dates.append(pd.to_datetime(str(p['date'][0])+"-"+str(p['date'][1])+"-"+str(p['date'][2])))
+        #dates.append(datetime.date(p['date'][0], p['date'][1], p['date'][2]))
+        #dates.append(pd.tslib.TimestampTimestamp(p['date'][0]+'-'+p['date'][1]+'-'+p['date'][2], tz=None))
+    return pd.Series(vals, index=dates)
+
+def getIndicatorFull(indicator_name):
+    if (isStored(indicator_name) == False):
+        indicator = getIndicatorFromQuandl(indicator_name)
+    else:
+        indicator = getIndicatorFromDb(indicator_name)
+    return indicator
 
 def getTestData():
     return [10,8,12,10,8,12,10,8,12,10,8,12,10,8,12,10]
