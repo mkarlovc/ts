@@ -8,6 +8,7 @@ import math
 import sys
 from sklearn.svm import SVR
 from sklearn import svm
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import datasets
 from sklearn import preprocessing
@@ -39,16 +40,38 @@ def test_stationarity(timeseries):
 
 # standard ML models
 
+def newSVR():
+    #clf = SVR(kernel='poly', C=1e3, degree=2)
+    clf = SVR(kernel='linear', C=1.0, epsilon=0.2)
+    return clf
+
 def SVR(features, labels):
-    svr_lin = SVR(kernel='linear', C=1e3)
+    clf = SVR(kernel='linear', C=1e3)
+    clf.fit(features, labels)
+    return clf
+
+def newRF():
+    return RandomForestClassifier(n_estimators = 100)
 
 def RF(features, labels):
-    rf = RandomForestClassifier(n_estimators = 100)
-    rf.fit(features, labels)
-    return rf
+    clf = RandomForestClassifier(n_estimators = 100)
+    clf.fit(features, labels)
+    return clf
+
+def newSVM():
+    return svm.SVC()
 
 def SVM(features, labels):
     clf = svm.SVC()
+    clf.fit(features, labels)
+    return clf
+
+def newMNB():
+    clf = MultinomialNB()
+    return clf
+
+def MNB(features, labels):
+    clf = MultinomialNB()
     clf.fit(features, labels)
     return clf
 
@@ -75,6 +98,25 @@ def RF_fc(features, labels):
     validation = val_metric(y, y_true)
     return (y,x,validation, clf)
 
+def model_fc(clf, features, labels):
+    minval = sys.float_info.max
+    maxval = -sys.float_info.max
+    y = []
+    y_true = []
+    x = []
+    for i,f in enumerate(features):
+        if i>0 and i < len(features):
+            real_val = labels[i]
+            test_tuple = features[i]
+            clf.fit(features[0:i], labels[0:i])
+            pred = clf.predict(test_tuple)[0]
+            x.append(i)
+            y.append(pred)
+            y_true.append(real_val)
+
+    validation = val_metric(y, y_true)
+    return (y, x, validation, clf)
+
 # validation metric
 
 def val_metric(y_pred, y_true):
@@ -99,13 +141,24 @@ def val_metric(y_pred, y_true):
     return {"R2": R2, "RMSE":RMSE, "NRMSD":NRMSD, "MSE":MSE, "RSS":RSS}
 
 def SVM_fc(features, labels):
+    y = []
+    y_true = []
+    x = []
     for i,f in enumerate(features):
-        if i>5 and i < len(features)-1:
-            real_val = labels[i+1]
-            test_tuple = features[i+1]
+        if i>1 and i < len(features):
+            real_val = labels[i]
+            test_tuple = features[i]
             clf = svm.SVC()
             clf.fit(features[0:i], labels[0:i])
-            print test_tuple, clf.predict(test_tuple), real_val
+            pred = clf.predict(test_tuple)[0]
+            x.append(i)
+            y.append(pred)
+            y_true.append(real_val)
+
+    validation = val_metric(y, y_true)
+    return (y,x,validation, clf)
+
+
 
 # Autoregressive (AR) model in sample
 def AR(endog):
